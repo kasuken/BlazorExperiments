@@ -4,6 +4,8 @@
 
 @inject Blazored.LocalStorage.ILocalStorageService ls
 
+@inject IJSRuntime jsr
+
 <h1>Weather forecast</h1>
 
 <h2>You are <b>@onlineStatus</b></h2>
@@ -45,19 +47,57 @@ else
 
     private string onlineStatus = "Online";
 
+    private bool onLine = true;
+
     protected override async Task OnInitializedAsync()
     {
-        try
+        //try
+        //{
+        //    onlineStatus = "Online";
+
+        //    forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("WeatherForecast");
+        //    await ls.SetItemAsync<WeatherForecast[]>("forecasts", forecasts);
+        //}
+        //catch (Exception)
+        //{
+        //    onlineStatus = "Offline";
+
+        //    forecasts = await ls.GetItemAsync<WeatherForecast[]>("forecasts");
+        //}
+    }
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            WindowInterop biWindow = await jsr.Window();
+            WindowNavigator biNavigator = await biWindow.Navigator();
+            await biNavigator.Connection.OnChange(async () =>
+              OnConnectionStateChanged(biNavigator.Online));
+
+            OnConnectionStateChanged(biNavigator.Online);
+        }
+    }
+
+    protected async void OnConnectionStateChanged(bool onlineState)
+    {
+        if (onLine == onlineState && onlineState)
         {
             onlineStatus = "Online";
 
             forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("WeatherForecast");
+
+            StateHasChanged();
         }
-        catch (Exception)
+        if (onLine != onlineState && !onlineState)
         {
             onlineStatus = "Offline";
 
             forecasts = await ls.GetItemAsync<WeatherForecast[]>("forecasts");
+
+            StateHasChanged();
         }
+
+        onLine = onlineState;
     }
 }
